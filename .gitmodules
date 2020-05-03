@@ -7,3 +7,6 @@
 [submodule "freertos"]
 	path = freertos-source
 	url = https://github.com/aws/amazon-freertos.git
+[submodule "nRF-IEEE-802.15.4-radio-driver"]
+	path = nRF-IEEE-802.15.4-radio-driver
+	url = https://github.com/NordicSemiconductor/nRF-IEEE-802.15.4-radio-driver.git

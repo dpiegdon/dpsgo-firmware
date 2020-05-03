@@ -31,6 +31,43 @@ SOURCES_C := \
 	freertos-port/CMSIS/$(CPU_CLASS)/port_cmsis_systick.c \
 	freertos-port/GCC/$(CPU_CLASS)/port.c \
 	nrfx/drivers/src/nrfx_clock.c \
+	nrfx/drivers/src/nrfx_uarte.c							\
+	nrfx/drivers/src/nrfx_gpiote.c							\
+	nrfx/drivers/src/prs/nrfx_prs.c							\
+	syscalls.c									\
+	nRF-IEEE-802.15.4-radio-driver/src/fal/nrf_802154_fal.c				\
+	nRF-IEEE-802.15.4-radio-driver/src/fem/nrf_fem_control.c			\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/ack_generator/nrf_802154_ack_data.c		\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/ack_generator/nrf_802154_ack_generator.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/ack_generator/nrf_802154_enh_ack_generator.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/ack_generator/nrf_802154_imm_ack_generator.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/nrf_802154_csma_ca.c		\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/nrf_802154_delayed_trx.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/nrf_802154_filter.c		\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/nrf_802154_frame_parser.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/mac_features/nrf_802154_precise_ack_timeout.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154.c					\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_core.c				\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_core_hooks.c			\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_critical_section.c		\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_debug.c				\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_notification_direct.c		\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_pib.c				\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_priority_drop_direct.c		\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_request_direct.c			\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_revision.c			\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_rssi.c				\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_rx_buffer.c			\
+	nRF-IEEE-802.15.4-radio-driver/src/nrf_802154_timer_coord.c			\
+	nRF-IEEE-802.15.4-radio-driver/src/rsch/nrf_802154_rsch.c			\
+	nRF-IEEE-802.15.4-radio-driver/src/rsch/nrf_802154_rsch_crit_sect.c		\
+	nRF-IEEE-802.15.4-radio-driver/src/rsch/raal/single_phy/single_phy.c		\
+	nRF-IEEE-802.15.4-radio-driver/src/platform/clock/nrf_802154_clock_nodrv.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/platform/hp_timer/nrf_802154_hp_timer.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/platform/lp_timer/nrf_802154_lp_timer_nodrv.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/platform/random/nrf_802154_random_stdlib.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/platform/temperature/nrf_802154_temperature_none.c	\
+	nRF-IEEE-802.15.4-radio-driver/src/timer_scheduler/nrf_802154_timer_sched.c	\
 	$(PROJECT_NAME).c
 
 SOURCES_CXX := \
@@ -40,6 +77,7 @@ SOURCES_CXX := \
 SDK_CONFIG_FILE := nrfx_config.h
 
 BMP_DEVICE ?= /dev/ttyACM0
+BMP_OTHER_DEVICE ?= /dev/ttyACM2
 
 ###
 
@@ -83,6 +121,7 @@ DEFINE_FLAGS += -DCONFIG_GPIO_AS_PINRESET
 DEFINE_FLAGS += -D$(CPUDEFINE)
 DEFINE_FLAGS += -D__HEAP_SIZE=$(HEAPSIZE)
 DEFINE_FLAGS += -D__STACK_SIZE=$(STACKSIZE)
+DEFINE_FLAGS += -DRAAL_SINGLE_PHY -DNRF_802154_USE_RAW_API=0 -DNRF_802154_CLOCK_LFCLK_SOURCE=CLOCK_LFCLKSRC_SRC_Synth
 
 CXXC_INCLUDE_FLAGS += -Inrfx
 CXXC_INCLUDE_FLAGS += -Inrfx/drivers/include
@@ -94,6 +133,7 @@ CXXC_INCLUDE_FLAGS += -ICMSIS_5/CMSIS/Core/Include
 CXXC_INCLUDE_FLAGS += -Ifreertos-config
 CXXC_INCLUDE_FLAGS += -Ifreertos-port/CMSIS/$(CPU_CLASS) -Ifreertos-port/GCC/$(CPU_CLASS) -Ifreertos-port
 CXXC_INCLUDE_FLAGS += -Ifreertos-source/freertos_kernel/include
+CXXC_INCLUDE_FLAGS += -InRF-IEEE-802.15.4-radio-driver/src -InRF-IEEE-802.15.4-radio-driver/src/rsch -InRF-IEEE-802.15.4-radio-driver/src/rsch/raal
 CXXC_INCLUDE_FLAGS += -I.
 
 DEBUG_OPTIMIZE_FLAGS += -O3 -g -gdwarf-4
