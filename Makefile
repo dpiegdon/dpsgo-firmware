@@ -1,5 +1,5 @@
 
-PROJECT_NAME := project
+PROJECT_NAME := dpsgo
 
 CPU := nrf52840
 CPU_CLASS := nrf52
