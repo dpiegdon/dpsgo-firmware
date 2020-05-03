@@ -10,3 +10,6 @@
 [submodule "nRF-IEEE-802.15.4-radio-driver"]
 	path = nRF-IEEE-802.15.4-radio-driver
 	url = https://github.com/NordicSemiconductor/nRF-IEEE-802.15.4-radio-driver.git
+[submodule "embedded_drivers"]
+	path = embedded_drivers
+	url = https://github.com/dpiegdon/embedded_drivers.git
