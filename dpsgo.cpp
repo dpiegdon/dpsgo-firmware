@@ -2,7 +2,6 @@
 #include <nrfx_clock.h>
 #include <nrf_gpio.h>
 #include <nrfx_gpiote.h>
-#include <nrfx_uarte.h>
 #include <nrf_802154.h>
 #include <nrf_temp.h>
 #include "nrf_nvmc.h"
@@ -21,19 +20,6 @@ static void clockEventHandler(nrfx_clock_evt_type_t event)
 }
 
 /* hardware configuration / muxing */
-
-const nrfx_uarte_t uart0 = NRFX_UARTE_INSTANCE(0);
-
-static const nrfx_uarte_config_t uart_config = {
-	.pseltxd = pin_gps_rxd,
-	.pselrxd = pin_gps_txd,
-	.pselcts = NRF_UARTE_PSEL_DISCONNECTED,
-	.pselrts = NRF_UARTE_PSEL_DISCONNECTED,
-	.hwfc = NRFX_UART_DEFAULT_CONFIG_HWFC,
-	.parity = NRFX_UART_DEFAULT_CONFIG_PARITY,
-	.baudrate = NRFX_UART_DEFAULT_CONFIG_BAUDRATE,
-	.interrupt_priority = NRFX_UART_DEFAULT_CONFIG_IRQ_PRIORITY
-};
 
 static inline void nop(void)
 {

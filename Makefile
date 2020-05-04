@@ -68,10 +68,11 @@ SOURCES_C := \
 	nRF-IEEE-802.15.4-radio-driver/src/platform/lp_timer/nrf_802154_lp_timer_nodrv.c \
 	nRF-IEEE-802.15.4-radio-driver/src/platform/random/nrf_802154_random_stdlib.c \
 	nRF-IEEE-802.15.4-radio-driver/src/platform/temperature/nrf_802154_temperature_none.c \
-	nRF-IEEE-802.15.4-radio-driver/src/timer_scheduler/nrf_802154_timer_sched.c \
-	$(PROJECT_NAME).c
+	nRF-IEEE-802.15.4-radio-driver/src/timer_scheduler/nrf_802154_timer_sched.c
 
 SOURCES_CXX := \
+	embedded_drivers/ssd1306_i2c_display.cpp \
+	$(PROJECT_NAME).cpp
 
 ###
 
