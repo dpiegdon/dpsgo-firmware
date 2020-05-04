@@ -32,9 +32,11 @@ const nrfx_gpiote_pin_t pin_dac_nreset = NRF_GPIO_PIN_MAP(1, 2);
 const nrfx_gpiote_pin_t pin_dac_nload = NRF_GPIO_PIN_MAP(1, 4);
 
 const nrfx_gpiote_pin_t pin_gps_pulse = NRF_GPIO_PIN_MAP(1, 9);
-const nrfx_gpiote_pin_t pin_gps_txd = NRF_GPIO_PIN_MAP(0, 4);
 const nrfx_gpiote_pin_t pin_gps_nreset = NRF_GPIO_PIN_MAP(0, 7);
+const nrfx_gpiote_pin_t pin_gps_txd = NRF_GPIO_PIN_MAP(0, 4);
 const nrfx_gpiote_pin_t pin_gps_rxd = NRF_GPIO_PIN_MAP(0, 12);
+const nrfx_gpiote_pin_t pin_gps_cts = NRF_UARTE_PSEL_DISCONNECTED;
+const nrfx_gpiote_pin_t pin_gps_rts = NRF_UARTE_PSEL_DISCONNECTED;
 
 const nrfx_gpiote_pin_t pin_pll_nen = NRF_GPIO_PIN_MAP(0, 13);
 const nrfx_gpiote_pin_t pin_pll_int = NRF_GPIO_PIN_MAP(0, 20);

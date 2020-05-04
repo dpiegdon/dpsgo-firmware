@@ -34,8 +34,8 @@ SOURCES_C := \
 	nrfx/drivers/src/nrfx_clock.c \
 	nrfx/drivers/src/nrfx_uarte.c \
 	nrfx/drivers/src/nrfx_gpiote.c \
+	nrfx/drivers/src/nrfx_twim.c \
 	nrfx/drivers/src/prs/nrfx_prs.c \
-	syscalls.c \
 	nRF-IEEE-802.15.4-radio-driver/src/fal/nrf_802154_fal.c \
 	nRF-IEEE-802.15.4-radio-driver/src/fem/nrf_fem_control.c \
 	nRF-IEEE-802.15.4-radio-driver/src/mac_features/ack_generator/nrf_802154_ack_data.c \
@@ -72,6 +72,10 @@ SOURCES_C := \
 
 SOURCES_CXX := \
 	embedded_drivers/ssd1306_i2c_display.cpp \
+	embedded_drivers/font_tama_mini02.cpp \
+	embedded_drivers/nrfx/glue.cpp \
+	embedded_drivers/nrfx/uarte.cpp \
+	syscalls.cpp \
 	$(PROJECT_NAME).cpp
 
 ###
@@ -126,6 +130,7 @@ DEFINE_FLAGS += -D__STACK_SIZE=$(STACKSIZE)
 DEFINE_FLAGS += -DRAAL_SINGLE_PHY -DNRF_802154_USE_RAW_API=0 -DNRF_802154_CLOCK_LFCLK_SOURCE=CLOCK_LFCLKSRC_SRC_Synth
 
 CXXC_INCLUDE_FLAGS += -Inrfx
+CXXC_INCLUDE_FLAGS += -Inrfx/drivers
 CXXC_INCLUDE_FLAGS += -Inrfx/drivers/include
 CXXC_INCLUDE_FLAGS += -Inrfx/hal
 CXXC_INCLUDE_FLAGS += -Inrfx/mdk
