@@ -1,11 +1,8 @@
 
 #include <nrfx_clock.h>
 #include <nrf_gpio.h>
-#include <nrfx_gpiote.h>
-#include <nrfx_twim.h>
-#include <nrf_802154.h>
 #include <nrf_temp.h>
-#include "nrf_nvmc.h"
+#include <nrf_nvmc.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <strings.h>
@@ -13,20 +10,11 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-#include "bsp.h"
-#include "syscalls.h"
-#include "embedded_drivers/nrfx/glue.h"
-#include "embedded_drivers/nrfx/uarte.h"
-#include "embedded_drivers/ssd1306_i2c_display.h"
-#include "embedded_drivers/font_tama_mini02.h"
+
+
+#include "dpsgo.h"
 
 namespace { //anonymous
-
-	void msleep_implementation(void * ctx, unsigned msecs)
-	{
-		(void) ctx;
-		vTaskDelay((msecs * configTICK_RATE_HZ) / 1000);
-	}
 
 	static void clockEventHandler(nrfx_clock_evt_type_t event)
 	{
@@ -94,117 +82,6 @@ static void init_hardware(void)
 	nrf_gpio_pin_clear(pin_pwr_en_12v);
 
 	nrf_gpio_cfg_input(pin_pwr_good, NRF_GPIO_PIN_NOPULL);
-}
-
-
-TaskHandle_t watchdogManager = NULL;
-static void watchdogManagerTask(void * ignored)
-{
-	(void)ignored;
-	while(1) {
-		nrf_gpio_pin_toggle(pin_fault_led);
-		vTaskDelay(configTICK_RATE_HZ/4);
-	}
-}
-
-TaskHandle_t uartManager = NULL;
-static void uartManagerTask(void * ignored)
-{
-	(void)ignored;
-
-	Uarte uart(pin_gps_rxd, pin_gps_txd, pin_gps_cts, pin_gps_rts);
-
-	while(1) { };
-	/*
-	while(1) {
-		int ret;
-		char c;
-		ret = uart.Read(&c, sizeof(c));
-		if(ret == NRFX_SUCCESS) {
-			//disp.PutChar(c);
-		} else {
-			int errors = uart.GetErrors();
-			printf("error: ");
-			if(errors & NRF_UARTE_ERROR_OVERRUN_MASK)
-				printf("overrun ");
-			if(errors & NRF_UARTE_ERROR_PARITY_MASK)
-				printf("parity ");
-			if(errors & NRF_UARTE_ERROR_FRAMING_MASK)
-				printf("framing ");
-			if(errors & NRF_UARTE_ERROR_BREAK_MASK)
-				printf("break ");
-			printf("\x02\r\n");
-		}
-	}
-	*/
-}
-
-TaskHandle_t spiManager = NULL;
-static void spiManagerTask(void * ignored)
-{
-	(void)ignored;
-
-	while(1) { };
-}
-
-TaskHandle_t i2cManager = NULL;
-static void i2cManagerTask(void * ignored)
-{
-	(void)ignored;
-
-	nrfx_twim_t twim_instance;
-
-	embedded_drivers::nrfx_init_twim(&twim_instance, pin_i2c_scl, pin_i2c_sda,
-			(nrf_twim_frequency_t)104857600, // magic value for 400 KHz
-			NRFX_TWIM_DEFAULT_CONFIG_IRQ_PRIORITY,
-			NRFX_TWIM_DEFAULT_CONFIG_HOLD_BUS_UNINIT);
-
-	embedded_drivers::Ssd1306I2cDisplay disp(NULL, msleep_implementation,
-			&twim_instance,
-			embedded_drivers::nrfx_twim_tx_implementation,
-			embedded_drivers::nrfx_twim_rx_implementation,
-			embedded_drivers::font_tama_mini02::dataptr,
-			embedded_drivers::font_tama_mini02::width,
-			embedded_drivers::font_tama_mini02::height);
-
-	stdio_via_ssd1306(&disp);
-
-	printf("ok.");
-
-	while(1) { };
-}
-
-TaskHandle_t logicManager = NULL;
-static void logicManagerTask(void * ignored)
-{
-	(void)ignored;
-
-	while(1) { };
-
-	// wait for all threads to do a basic hardware init
-
-	// enable all power rails
-
-	// upload FPGA bitstream
-
-	// program frequency synthesizer
-
-	// enter operating_state:
-	//   wait for some message.
-	//   if FPGA frequency capture message:
-	//     calculate frequency difference
-	//     use some kind of control mechanism (PID?)
-	//     set new DAC value
-	//     reset FPGA counter
-	//   if FPGA interface message:
-	//     adapt UI? or delegate UI to i2c thread?
-	//   if message from UART:
-	//     receive and parse GPS message
-	//     set according flags (FIX/NO FIX) and time
-	//     update screen
-	//   if other message (interrupt, GPIO):
-	//     check alerts et al
-	//   goto operating_state
 }
 
 int main(void)

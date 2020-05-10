@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include "nrfx_gpiote.h"
-#include "nrfx_uarte.h"
+#include <nrfx_gpiote.h>
+#include <nrfx_uarte.h>
 
 const nrfx_gpiote_pin_t pin_fault_led = NRF_GPIO_PIN_MAP(0, 8);
 

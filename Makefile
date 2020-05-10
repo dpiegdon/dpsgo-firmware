@@ -76,6 +76,11 @@ SOURCES_CXX := \
 	embedded_drivers/nrfx/glue.cpp \
 	embedded_drivers/nrfx/uarte.cpp \
 	syscalls.cpp \
+	i2cManager.cpp \
+	logicManager.cpp \
+	spiManager.cpp \
+	uartManager.cpp \
+	watchdogManager.cpp \
 	$(PROJECT_NAME).cpp
 
 ###
