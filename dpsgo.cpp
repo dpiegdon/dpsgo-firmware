@@ -37,11 +37,6 @@ namespace { //anonymous
 
 /* hardware configuration / muxing */
 
-static inline void nop(void)
-{
-	__asm__ __volatile__("nop":::);
-}
-
 void setupUICR(void)
 {
 	unsigned changes = 0;
@@ -62,13 +57,14 @@ void setupUICR(void)
 		++changes;
 	}
 
+	// we need to reset if we changed the UICR. but first show a quick message to the user.
 	if(changes) {
-		while(1) {
-			// loop until reset and indicate state on fault LED
+		for(int k = 0; k < 4; ++k) {
 			nrf_gpio_pin_toggle(pin_fault_led);
 			for(uint32_t i = 0; i < 0x50000; ++i)
-				nop();
+				__asm__ __volatile__("nop":::);
 		}
+		NVIC_SystemReset();
 	}
 }
 
@@ -100,20 +96,61 @@ static void init_hardware(void)
 	nrf_gpio_cfg_input(pin_pwr_good, NRF_GPIO_PIN_NOPULL);
 }
 
-static void ledFlasherTask(void * led)
+
+TaskHandle_t watchdogManager = NULL;
+static void watchdogManagerTask(void * ignored)
 {
-	vTaskDelay(16 * (0xf & (unsigned) led));
+	(void)ignored;
 	while(1) {
-		//nrf_gpio_pin_toggle(*(const uint32_t *)led);
-		vTaskDelay(configTICK_RATE_HZ/3);
+		nrf_gpio_pin_toggle(pin_fault_led);
+		vTaskDelay(configTICK_RATE_HZ/4);
 	}
 }
 
-static void gpsToDisplayTask(void * ignored)
+TaskHandle_t uartManager = NULL;
+static void uartManagerTask(void * ignored)
 {
 	(void)ignored;
 
 	Uarte uart(pin_gps_rxd, pin_gps_txd, pin_gps_cts, pin_gps_rts);
+
+	while(1) { };
+	/*
+	while(1) {
+		int ret;
+		char c;
+		ret = uart.Read(&c, sizeof(c));
+		if(ret == NRFX_SUCCESS) {
+			//disp.PutChar(c);
+		} else {
+			int errors = uart.GetErrors();
+			printf("error: ");
+			if(errors & NRF_UARTE_ERROR_OVERRUN_MASK)
+				printf("overrun ");
+			if(errors & NRF_UARTE_ERROR_PARITY_MASK)
+				printf("parity ");
+			if(errors & NRF_UARTE_ERROR_FRAMING_MASK)
+				printf("framing ");
+			if(errors & NRF_UARTE_ERROR_BREAK_MASK)
+				printf("break ");
+			printf("\x02\r\n");
+		}
+	}
+	*/
+}
+
+TaskHandle_t spiManager = NULL;
+static void spiManagerTask(void * ignored)
+{
+	(void)ignored;
+
+	while(1) { };
+}
+
+TaskHandle_t i2cManager = NULL;
+static void i2cManagerTask(void * ignored)
+{
+	(void)ignored;
 
 	nrfx_twim_t twim_instance;
 
@@ -134,44 +171,72 @@ static void gpsToDisplayTask(void * ignored)
 
 	printf("ok.");
 
-	while(1) {
-		int ret;
-		char c;
-		ret = uart.Read(&c, sizeof(c));
-		nrf_gpio_pin_toggle(pin_fault_led);
-		if(ret == NRFX_SUCCESS) {
-			disp.PutChar(c);
-		} else {
-			int errors = uart.GetErrors();
-			printf("error: ");
-			if(errors & NRF_UARTE_ERROR_OVERRUN_MASK)
-				printf("overrun ");
-			if(errors & NRF_UARTE_ERROR_PARITY_MASK)
-				printf("parity ");
-			if(errors & NRF_UARTE_ERROR_FRAMING_MASK)
-				printf("framing ");
-			if(errors & NRF_UARTE_ERROR_BREAK_MASK)
-				printf("break ");
-			printf("\x02\r\n");
-		}
-	}
+	while(1) { };
+}
+
+TaskHandle_t logicManager = NULL;
+static void logicManagerTask(void * ignored)
+{
+	(void)ignored;
+
+	while(1) { };
+
+	// wait for all threads to do a basic hardware init
+
+	// enable all power rails
+
+	// upload FPGA bitstream
+
+	// program frequency synthesizer
+
+	// enter operating_state:
+	//   wait for some message.
+	//   if FPGA frequency capture message:
+	//     calculate frequency difference
+	//     use some kind of control mechanism (PID?)
+	//     set new DAC value
+	//     reset FPGA counter
+	//   if FPGA interface message:
+	//     adapt UI? or delegate UI to i2c thread?
+	//   if message from UART:
+	//     receive and parse GPS message
+	//     set according flags (FIX/NO FIX) and time
+	//     update screen
+	//   if other message (interrupt, GPIO):
+	//     check alerts et al
+	//   goto operating_state
 }
 
 int main(void)
 {
-	TaskHandle_t ledFlasher = NULL;
-	TaskHandle_t gpsToDisplay = NULL;
-
 	BaseType_t ret;
 
 	init_hardware();
 
-	ret = xTaskCreate(ledFlasherTask, "led", 128, (void*)&pin_fault_led, 3, &ledFlasher);
+	ret = xTaskCreate(watchdogManagerTask, "watchdog", 128, NULL, 3, &watchdogManager);
 	assert(ret == pdPASS);
 
-	ret = xTaskCreate(gpsToDisplayTask, "gps2display", 512, NULL, 3, &gpsToDisplay);
+	ret = xTaskCreate(uartManagerTask, "uartManager", 512, NULL, 3, &uartManager);
+	assert(ret == pdPASS);
+
+	ret = xTaskCreate(spiManagerTask, "spiManager", 512, NULL, 3, &spiManager);
+	assert(ret == pdPASS);
+
+	ret = xTaskCreate(i2cManagerTask, "i2cManager", 512, NULL, 3, &i2cManager);
+	assert(ret == pdPASS);
+
+	ret = xTaskCreate(logicManagerTask, "logicManager", 512, NULL, 3, &logicManager);
 	assert(ret == pdPASS);
 
 	vTaskStartScheduler();
+
+	// scheduler should never return, so indicate fault if it did
+	__disable_irq();
+	for(int k = 0; k < 128; ++k) {
+		nrf_gpio_pin_toggle(pin_fault_led);
+		for(uint32_t i = 0; i < 0x50000; ++i)
+			__asm__ __volatile__("nop":::);
+	}
+	NVIC_SystemReset();
 }
 
