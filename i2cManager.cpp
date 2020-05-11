@@ -41,8 +41,13 @@ void i2cManagerTask(void * ignored)
 	// FIXME stdio should go into a queue that we receive and print here
 	stdio_via_ssd1306(&disp);
 
-	printf("ok.");
+	printf("ok.\r\n");
 
-	while(1) { };
+	unsigned i = 0;
+	while(1) {
+		vTaskDelay(configTICK_RATE_HZ/4);
+		printf("%d\r\n", i);
+		i++;
+	};
 }
 

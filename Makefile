@@ -36,6 +36,7 @@ SOURCES_C := \
 	nrfx/drivers/src/nrfx_gpiote.c \
 	nrfx/drivers/src/nrfx_twim.c \
 	nrfx/drivers/src/prs/nrfx_prs.c \
+	nrfx/drivers/src/nrfx_wdt.c \
 	nRF-IEEE-802.15.4-radio-driver/src/fal/nrf_802154_fal.c \
 	nRF-IEEE-802.15.4-radio-driver/src/fem/nrf_fem_control.c \
 	nRF-IEEE-802.15.4-radio-driver/src/mac_features/ack_generator/nrf_802154_ack_data.c \
@@ -148,7 +149,7 @@ CXXC_INCLUDE_FLAGS += -Ifreertos-source/freertos_kernel/include
 CXXC_INCLUDE_FLAGS += -InRF-IEEE-802.15.4-radio-driver/src -InRF-IEEE-802.15.4-radio-driver/src/rsch -InRF-IEEE-802.15.4-radio-driver/src/rsch/raal
 CXXC_INCLUDE_FLAGS += -I.
 
-DEBUG_OPTIMIZE_FLAGS += -O3 -g -gdwarf-4
+DEBUG_OPTIMIZE_FLAGS += -O0 -g -gdwarf-4
 
 # if you are using LTO,
 #DEBUG_OPTIMIZE_FLAGS += -flto -fdevirtualize-at-ltrans
