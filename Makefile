@@ -105,6 +105,7 @@ CXX := $(CROSSCOMPILE)g++
 AS := $(CROSSCOMPILE)as
 AR := $(CROSSCOMPILE)ar
 LD := $(CROSSCOMPILE)g++
+REALLD := $(CROSSCOMPILE)ld
 GDB := $(shell which $(CROSSCOMPILE)gdb || which gdb-multiarch || echo false)
 NM := $(CROSSCOMPILE)nm
 OBJCOPY := $(CROSSCOMPILE)objcopy
@@ -122,7 +123,7 @@ STACKUSAGES := $(patsubst %.c,%.su,$(SOURCES_C)) $(patsubst %.cpp,%.su,$(SOURCES
 OBJECTS_S := $(patsubst %.s,%.o,$(patsubst %.S,%.o,$(SOURCES_S)))
 OBJECTS_C := $(patsubst %.c,%.o,$(SOURCES_C))
 OBJECTS_CXX := $(patsubst %.cpp,%.o,$(SOURCES_CXX))
-OBJECTS := $(OBJECTS_S) $(OBJECTS_C) $(OBJECTS_CXX)
+OBJECTS := $(OBJECTS_S) $(OBJECTS_C) $(OBJECTS_CXX) fpga_bitstream.o
 
 ###
 
@@ -183,6 +184,8 @@ $(BINARY_NAME).elf: $(OBJECTS)
 	$(LD) $(LDFLAGS) $^ -o $@
 	$(SIZE) -Ax $@
 
+fpga_bitstream.o: ../firmware-fpga/top.bin
+	$(REALLD) -r -b binary $< -o $@ -m armelf
 
 %.asm: %.elf
 	$(OBJDUMP) -dgCxwsSh --show-raw-insn $< > $@
