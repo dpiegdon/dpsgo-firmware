@@ -4,7 +4,6 @@
 #include "embedded_drivers/ssd1306_i2c_display.h"
 #include "embedded_drivers/font_tama_mini02.h"
 #include "embedded_drivers/nrfx/glue.h"
-#include "syscalls.h"
 
 #include <nrfx_twim.h>
 
@@ -17,6 +16,7 @@ namespace { //anonymous
 	}
 }
 
+StreamBufferHandle_t console = NULL;
 
 TaskHandle_t i2cManager = NULL;
 void i2cManagerTask(void * ignored)
@@ -38,16 +38,15 @@ void i2cManagerTask(void * ignored)
 			embedded_drivers::font_tama_mini02::width,
 			embedded_drivers::font_tama_mini02::height);
 
-	// FIXME stdio should go into a queue that we receive and print here
-	stdio_via_ssd1306(&disp);
+	console = xStreamBufferCreate(256, 1);
 
-	printf("ok.\r\n");
+	printf("console ready.\r\n");
 
-	unsigned i = 0;
 	while(1) {
-		vTaskDelay(configTICK_RATE_HZ/4);
-		printf("%d\r\n", i);
-		i++;
+		char buf[64];
+		size_t len;
+		len = xStreamBufferReceive(console, buf, sizeof(buf), pdMS_TO_TICKS(1000));
+		disp.Write(buf, len);
 	};
 }
 

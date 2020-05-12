@@ -108,6 +108,7 @@ int main(void)
 
 	vTaskStartScheduler();
 
+
 	// scheduler should never return, so indicate fault if it did
 	__disable_irq();
 	for(int k = 0; k < 128; ++k) {
