@@ -1,4 +1,5 @@
 
+#include <string>
 #include <unistd.h>
 
 #include "dpsgo.h"
@@ -6,6 +7,7 @@
 #include <event_groups.h>
 
 #define BUFFER_SIZE 32
+#define NMEA_MAX_SIZE 85
 static uint8_t * hot_buffer;
 static uint8_t * cold_buffer;
 static volatile size_t hot_received;
@@ -63,6 +65,47 @@ void setupUart(nrfx_uarte_t & instance)
 	assert(NRFX_SUCCESS == nrfx_uarte_init(&instance, &config, uarteEventHandler));
 }
 
+int hexDigit2int(int digit)
+{
+	if(digit <= '9')
+		return digit - '0';
+	else if(digit >= 'a')
+		return digit - 'a' + 10;
+	else
+		return digit - 'A' + 10;
+}
+
+void handleNmeaMessage(std::string msg)
+/* expects message without leading '$' */
+{
+	size_t i;
+	size_t len;
+	// strip whitespace tail
+	while(msg.back() == '\n' || msg.back() == '\r')
+		msg.pop_back();
+
+	// strip and verify (optional) checksum tail
+	i = msg.find_last_of('*');
+	if(std::string::npos != i) {
+		len = msg.length();
+		if(3 != len - i)
+			return;
+
+		uint8_t checksum = 16 * hexDigit2int(msg[i+1]) + hexDigit2int(msg[i+2]);
+		msg = msg.substr(0, i);
+
+		uint8_t selfsummed = 0;
+		for(auto it: msg)
+			selfsummed ^= it;
+
+		if(checksum != selfsummed)
+			return;
+	}
+
+	len = msg.length();
+	printf("%s\r\n", msg.c_str());
+}
+
 TaskHandle_t uartManager = NULL;
 void uartManagerTask(void * ignored)
 {
@@ -84,6 +127,9 @@ void uartManagerTask(void * ignored)
 	cold_buffer = buffer1;
 	cold_received = 0;
 
+	std::string nmeaBuffer;
+	nmeaBuffer.reserve(BUFFER_SIZE + NMEA_MAX_SIZE);
+
 	while(1) {
 		// receive in non-blocking way
 		hot_received = 0;
@@ -91,9 +137,17 @@ void uartManagerTask(void * ignored)
 
 		// and transmit previously received
 		if(cold_received) {
-			// FIXME some blocking way would be better,
-			// or dissect into GPS messages (lines)
-			write(STDOUT_FILENO, cold_buffer, cold_received);
+			nmeaBuffer.append((char*)cold_buffer, cold_received);
+			if(nmeaBuffer.length() > (BUFFER_SIZE + NMEA_MAX_SIZE)) {
+				nmeaBuffer.clear(); // drop corrupted messages
+			} else {
+				size_t next;
+				while(std::string::npos != (next = nmeaBuffer.find_first_of('$', 1))) {
+					if('$' == nmeaBuffer[0])
+						handleNmeaMessage(nmeaBuffer.substr(1, next-1));
+					nmeaBuffer = nmeaBuffer.substr(next, std::string::npos);
+				}
+			}
 		}
 
 		EventBits_t events;
