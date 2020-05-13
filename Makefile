@@ -76,7 +76,6 @@ SOURCES_CXX := \
 	embedded_drivers/ssd1306_i2c_display.cpp \
 	embedded_drivers/font_tama_mini02.cpp \
 	embedded_drivers/nrfx/glue.cpp \
-	embedded_drivers/nrfx/uarte.cpp \
 	syscalls.cpp \
 	i2cManager.cpp \
 	logicManager.cpp \
