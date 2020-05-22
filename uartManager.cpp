@@ -92,6 +92,7 @@ namespace { /* anon */
 		if(n < 9)
 			return;
 
+		/*
 		// UTC time
 		tok = nmeaStripFrontToken(payload);
 		printf("TIME UTC %s\r\n", tok.c_str());
@@ -131,6 +132,7 @@ namespace { /* anon */
 		// DPGS station id
 		tok = nmeaStripFrontToken(payload);
 		printf("ID %s\r\n\n", tok.c_str());
+		*/
 	}
 
 	void handleNmeaLatLong(std::string & payload)
