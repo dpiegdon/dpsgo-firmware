@@ -35,6 +35,7 @@ SOURCES_C := \
 	nrfx/drivers/src/nrfx_uarte.c \
 	nrfx/drivers/src/nrfx_gpiote.c \
 	nrfx/drivers/src/nrfx_twim.c \
+	nrfx/drivers/src/nrfx_spim.c \
 	nrfx/drivers/src/prs/nrfx_prs.c \
 	nrfx/drivers/src/nrfx_wdt.c
 
@@ -73,10 +74,11 @@ SOURCES_C := \
 #	nRF-IEEE-802.15.4-radio-driver/src/timer_scheduler/nrf_802154_timer_sched.c
 
 SOURCES_CXX := \
+	embedded_drivers/nrfx/glue.cpp \
 	embedded_drivers/ssd1306_i2c_display.cpp \
 	embedded_drivers/font_tama_mini02.cpp \
-	embedded_drivers/nrfx/glue.cpp \
 	embedded_drivers/si5351_i2c_clockgen.cpp \
+	embedded_drivers/ad5761r_spi_dac.cpp \
 	syscalls.cpp \
 	i2cManager.cpp \
 	logicManager.cpp \

@@ -74,8 +74,8 @@ static void init_hardware(void)
 
 
 	// disable all power rails
-	nrf_gpio_cfg_output(pin_pwr_nen_10v);
-	nrf_gpio_pin_set(pin_pwr_nen_10v);
+	//nrf_gpio_cfg_output(pin_pwr_nen_10v);
+	//nrf_gpio_pin_set(pin_pwr_nen_10v);
 	nrf_gpio_cfg_output(pin_pwr_en_1v2);
 	nrf_gpio_pin_clear(pin_pwr_en_1v2);
 	nrf_gpio_cfg_output(pin_pwr_en_12v);

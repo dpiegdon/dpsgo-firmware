@@ -67,7 +67,7 @@ namespace { //anonymous
 
 		if(!clockgen.ClockSetControl(Si5351I2cClockgenerator::CLOCK_0,
 					true, false, Si5351I2cClockgenerator::PLL_B,
-					false, Si5351I2cClockgenerator::CLKSRC_MULTISYNTH_N, 0b11))
+					false, Si5351I2cClockgenerator::CLKSRC_CLKIN, 0b11))
 			return false;
 		display.Puts("Si5351 clk0 ctrl ok\r\n");
 
@@ -95,6 +95,9 @@ void i2cManagerTask(void * ignored)
 	(void)ignored;
 
 	nrfx_twim_t twim_instance;
+
+	twim_instance.p_twim       = NRF_TWIM0;
+	twim_instance.drv_inst_idx = NRFX_TWIM0_INST_IDX;
 
 	nrfx_init_twim(&twim_instance, pin_i2c_scl, pin_i2c_sda,
 			(nrf_twim_frequency_t)104857600, // magic value for 400 KHz

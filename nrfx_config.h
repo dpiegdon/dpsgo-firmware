@@ -1777,21 +1777,21 @@
 
 
 #ifndef NRFX_SPIM0_ENABLED
-#define NRFX_SPIM0_ENABLED 1
+#define NRFX_SPIM0_ENABLED 0
 #endif
 
 // <q> NRFX_SPIM1_ENABLED  - Enable SPIM1 instance
 
 
 #ifndef NRFX_SPIM1_ENABLED
-#define NRFX_SPIM1_ENABLED 1
+#define NRFX_SPIM1_ENABLED 0
 #endif
 
 // <q> NRFX_SPIM2_ENABLED  - Enable SPIM2 instance
 
 
 #ifndef NRFX_SPIM2_ENABLED
-#define NRFX_SPIM2_ENABLED 1
+#define NRFX_SPIM2_ENABLED 0
 #endif
 
 // <q> NRFX_SPIM3_ENABLED  - Enable SPIM3 instance
@@ -2406,7 +2406,7 @@
 
 
 #ifndef NRFX_TWIM1_ENABLED
-#define NRFX_TWIM1_ENABLED 1
+#define NRFX_TWIM1_ENABLED 0
 #endif
 
 // <o> NRFX_TWIM_DEFAULT_CONFIG_FREQUENCY  - Frequency
