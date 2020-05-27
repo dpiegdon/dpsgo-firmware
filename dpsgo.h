@@ -34,8 +34,8 @@ void spiManagerTask(void * ignored);
 // symbols from fpga_bitstream.o:
 extern const char _binary____firmware_fpga_top_bin_end;
 extern const char _binary____firmware_fpga_top_bin_start;
-#define FPGA_BITSTREAM (&_binary____firmware_fpga_top_bin_start)
-#define FPGA_BITSTREAM_SIZE ((&_binary____firmware_fpga_top_bin_end) - FPGA_BITSTREAM)
+#define FPGA_BITSTREAM ((const uint8_t*)(&_binary____firmware_fpga_top_bin_start))
+#define FPGA_BITSTREAM_SIZE (((const uint8_t*)(&_binary____firmware_fpga_top_bin_end)) - FPGA_BITSTREAM)
 
 
 

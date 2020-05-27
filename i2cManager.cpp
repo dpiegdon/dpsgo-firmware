@@ -54,11 +54,12 @@ namespace { //anonymous
 		*/
 
 		if(!clockgen.PllSetMultisynth(Si5351I2cClockgenerator::PLL_B,
-					90, 0, 1))
+					80, 0, 1))
 			return false;
-		display.Puts("Si5351 PLL-B @900MHz\r\n");
+		display.Puts("Si5351 PLL-B @800MHz\r\n");
 		// FIXME set integer mode for PLL_B
 
+		// setup CLK0 to be 800/10 = 80MHz
 		if(!clockgen.ClockSetMultisynth(Si5351I2cClockgenerator::CLOCK_0,
 					10, 0, 1, 1, 0))
 			return false;

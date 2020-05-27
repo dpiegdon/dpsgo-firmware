@@ -73,13 +73,13 @@ static void init_hardware(void)
 	nrfx_clock_lfclk_start();
 
 
-	// disable all power rails
-	//nrf_gpio_cfg_output(pin_pwr_nen_10v);
-	//nrf_gpio_pin_set(pin_pwr_nen_10v);
+	// enable all power rails
+	nrf_gpio_cfg_output(pin_pwr_nen_10v);
+	nrf_gpio_pin_clear(pin_pwr_nen_10v);
 	nrf_gpio_cfg_output(pin_pwr_en_1v2);
-	nrf_gpio_pin_clear(pin_pwr_en_1v2);
+	nrf_gpio_pin_set(pin_pwr_en_1v2);
 	nrf_gpio_cfg_output(pin_pwr_en_12v);
-	nrf_gpio_pin_clear(pin_pwr_en_12v);
+	nrf_gpio_pin_set(pin_pwr_en_12v);
 
 	nrf_gpio_cfg_input(pin_pwr_good, NRF_GPIO_PIN_NOPULL);
 }
