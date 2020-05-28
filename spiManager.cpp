@@ -11,7 +11,7 @@
 using namespace embedded_drivers;
 
 
-bool initialize_fpga(nrfx_spim_t & spim_instance)
+bool fpga_initialize(nrfx_spim_t & spim_instance)
 {
 	// upload FPGA image
 	bool success = false;
@@ -32,6 +32,8 @@ bool initialize_fpga(nrfx_spim_t & spim_instance)
 	// take FPGA down, then put it into SPI slave mode
 	nrf_gpio_cfg_output(pin_fpga_nreset);
 	nrf_gpio_pin_clear(pin_fpga_nreset);
+	vTaskDelay(pdMS_TO_TICKS(1));
+
 	nrf_gpio_cfg_output(pin_spi_ncs_fpga);
 	nrf_gpio_pin_clear(pin_spi_ncs_fpga);
 	nrf_gpio_cfg_input(pin_fpga_cdone, NRF_GPIO_PIN_NOPULL);
@@ -71,6 +73,24 @@ fail:
 	return success;
 }
 
+static uint8_t c = 0x3f;
+
+void fpga_transfer(nrfx_spim_t & spim_instance)
+{
+	// spim_instance is assumed to be initialized in mode 1.
+	struct spi_context_with_cs ctx{ (void*)&spim_instance, true, pin_spi_ncs_fpga };
+	uint8_t tx_buf[5]{ 0,0,0,0,c };
+	uint8_t rx_buf[5];
+
+	nrfx_spim_xfer_manual_cs_implementation((void*)&ctx, tx_buf, sizeof(tx_buf),
+						rx_buf, sizeof(rx_buf));
+
+	if(rx_buf[0] & ((1<<5)|(1<<7)))
+		c -= 1;
+	if(rx_buf[0] & ((1<<4)|(1<<6)))
+		c += 1;
+}
+
 
 TaskHandle_t spiManager = NULL;
 void spiManagerTask(void * ignored)
@@ -83,7 +103,7 @@ void spiManagerTask(void * ignored)
 	spim_instance.p_reg = NRF_SPIM3;
 	spim_instance.drv_inst_idx = NRFX_SPIM3_INST_IDX;
 
-	while(!initialize_fpga(spim_instance))
+	while(!fpga_initialize(spim_instance))
 		printf("failed to initialize FPGA\r\n");
 
 	// prepare for use with DAC and FPGA client
@@ -112,12 +132,18 @@ void spiManagerTask(void * ignored)
 
 	uint16_t i = 0x8000;
 	while(1) {
-		vTaskDelay(500);
-		//i += 655;
+		vTaskDelay(100);
+
 		if(!ad5761r.WriteInputRegAndUpdate(i))
 			printf("ad5761 write failed.\r\n");
 		int32_t ret = ad5761r.ReadInputReg();
-		printf("ad5761 read: 0x%08lx\r\n", ret);
+		if(ret != i)
+			printf("ad5761 readback bad result: expected 0x%04x, got 0x%04lx\r\n",
+					i, ret);
+
+		vTaskDelay(1);
+
+		fpga_transfer(spim_instance);
 	};
 }
 

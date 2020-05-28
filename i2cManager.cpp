@@ -68,7 +68,7 @@ namespace { //anonymous
 
 		if(!clockgen.ClockSetControl(Si5351I2cClockgenerator::CLOCK_0,
 					true, false, Si5351I2cClockgenerator::PLL_B,
-					false, Si5351I2cClockgenerator::CLKSRC_CLKIN, 0b11))
+					false, Si5351I2cClockgenerator::CLKSRC_MULTISYNTH_N, 0b11))
 			return false;
 		display.Puts("Si5351 clk0 ctrl ok\r\n");
 
