@@ -92,10 +92,10 @@ namespace { /* anon */
 		if(n < 9)
 			return;
 
-		/*
 		// UTC time
 		tok = nmeaStripFrontToken(payload);
 		printf("TIME UTC %s\r\n", tok.c_str());
+		/*
 
 		// latitude
 		tok = nmeaStripFrontToken(payload);

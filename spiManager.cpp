@@ -7,6 +7,7 @@
 #include <nrfx_spim.h>
 #include <cstring>
 #include <strings.h>
+#include <machine/endian.h>
 
 using namespace embedded_drivers;
 
@@ -73,22 +74,47 @@ fail:
 	return success;
 }
 
-static uint8_t c = 0x3f;
+static uint8_t gps_average = 0; // [+2]
+
+uint16_t dac_out = 0x8000;
+
+struct FpgaRxMessage {
+	uint32_t counter;
+	uint8_t inputs;
+} __attribute__((packed));
 
 void fpga_transfer(nrfx_spim_t & spim_instance)
 {
 	// spim_instance is assumed to be initialized in mode 1.
 	struct spi_context_with_cs ctx{ (void*)&spim_instance, true, pin_spi_ncs_fpga };
-	uint8_t tx_buf[5]{ 0,0,0,0,c };
-	uint8_t rx_buf[5];
+	uint8_t tx_buf[5]{ 0,0,0,0,gps_average };
+	struct FpgaRxMessage rx_buf;
 
-	nrfx_spim_xfer_manual_cs_implementation((void*)&ctx, tx_buf, sizeof(tx_buf),
-						rx_buf, sizeof(rx_buf));
+	if(!nrfx_spim_xfer_manual_cs_implementation((void*)&ctx, tx_buf, sizeof(tx_buf),
+						(uint8_t*)&rx_buf, sizeof(rx_buf)))
+		return;
 
-	if(rx_buf[0] & ((1<<5)|(1<<7)))
-		c -= 1;
-	if(rx_buf[0] & ((1<<4)|(1<<6)))
-		c += 1;
+	rx_buf.counter = __ntohl(rx_buf.counter);
+	if(rx_buf.counter != 0) {
+		printf("counter %lu\r\n", rx_buf.counter);
+
+		if(rx_buf.counter < 70e6) {
+			if(dac_out <= 0xffff-0x100)
+				dac_out += 0x100;
+			printf("DAC up: %u\r\n", dac_out);
+		} else if(rx_buf.counter > 70e6) {
+			if(dac_out >= 0+0x100)
+				dac_out -= 0x100;
+			printf("DAC down: %u\r\n", dac_out);
+		}
+	}
+
+	if(rx_buf.inputs & ((1<<3)))
+		gps_average--;
+	if(rx_buf.inputs & ((1<<2)))
+		gps_average++;
+	if(rx_buf.inputs)
+		printf("average over %d seconds\r\n", gps_average+1);
 }
 
 
@@ -116,7 +142,7 @@ void spiManagerTask(void * ignored)
 			NRFX_SPIM_DEFAULT_CONFIG_IRQ_PRIORITY,
 			0xff,
 			NRF_SPIM_FREQ_4M,
-			NRF_SPIM_MODE_1,
+			NRF_SPIM_MODE_2,
 			NRF_SPIM_BIT_ORDER_MSB_FIRST);
 
 	// prepare DAC
@@ -130,21 +156,20 @@ void spiManagerTask(void * ignored)
 
 	ad5761r.WriteControlRegister(0b00, false, false, true, true, 0b00, 0b001);
 
-	uint16_t i = 0x8000;
 	while(1) {
-		vTaskDelay(500);
+		vTaskDelay(1000);
 
-		if(!ad5761r.WriteInputRegAndUpdate(i))
+		if(!ad5761r.WriteInputRegAndUpdate(dac_out))
 			printf("ad5761 write failed.\r\n");
 #if 0
 		else
-			printf("ad5761 set to 0x%04x.\r\n", i);
-		i += 0x100;
+			printf("ad5761 set to 0x%04x.\r\n", dac_out);
+		dac_out += 0x100;
 #endif
 		int32_t ret = ad5761r.ReadInputReg();
-		if(ret != i)
+		if(ret != dac_out)
 			printf("ad5761 readback bad result: expected 0x%04x, got 0x%04lx\r\n",
-					i, ret);
+					dac_out, ret);
 
 		vTaskDelay(1);
 
