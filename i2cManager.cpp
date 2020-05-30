@@ -72,6 +72,19 @@ namespace { //anonymous
 			return false;
 		display.Puts("Si5351 clk0 ctrl ok\r\n");
 
+		// setup CLK1 to be 800/80 = 10MHz
+		if(!clockgen.ClockSetMultisynth(Si5351I2cClockgenerator::CLOCK_1,
+					80, 0, 1, 1, 0))
+			return false;
+		display.Puts("Si5351 clk1 MS set\r\n");
+
+		// FIXME set MultiSynth0 to integer mode?
+		if(!clockgen.ClockSetControl(Si5351I2cClockgenerator::CLOCK_1,
+					true, false, Si5351I2cClockgenerator::PLL_B,
+					false, Si5351I2cClockgenerator::CLKSRC_MULTISYNTH_N, 0b11))
+			return false;
+		display.Puts("Si5351 clk1 ctrl ok\r\n");
+
 		if(!clockgen.OebPinEnable(0xff))
 			return false;
 		display.Puts("Si5351 oeb pin disabled\r\n");
@@ -80,9 +93,9 @@ namespace { //anonymous
 			return false;
 		display.Puts("Si5351 PLL Reset ok\r\n");
 
-		if(!clockgen.OutputEnable(0xfe))
+		if(!clockgen.OutputEnable(0xfc))
 			return false;
-		display.Puts("Si5351 clk0 output on\r\n");
+		display.Puts("Si5351 clk0,1 output on\r\n");
 
 		return true;
 	}

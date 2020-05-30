@@ -132,10 +132,15 @@ void spiManagerTask(void * ignored)
 
 	uint16_t i = 0x8000;
 	while(1) {
-		vTaskDelay(100);
+		vTaskDelay(500);
 
 		if(!ad5761r.WriteInputRegAndUpdate(i))
 			printf("ad5761 write failed.\r\n");
+#if 0
+		else
+			printf("ad5761 set to 0x%04x.\r\n", i);
+		i += 0x100;
+#endif
 		int32_t ret = ad5761r.ReadInputReg();
 		if(ret != i)
 			printf("ad5761 readback bad result: expected 0x%04x, got 0x%04lx\r\n",
