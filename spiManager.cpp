@@ -4,119 +4,137 @@
 #include "embedded_drivers/ad5761r_spi_dac.h"
 #include "embedded_drivers/nrfx/glue.h"
 
-#include <nrfx_spim.h>
+#include <algorithm>
 #include <cstring>
 #include <strings.h>
+#include <nrfx_spim.h>
 #include <machine/endian.h>
 
 using namespace embedded_drivers;
 
+namespace /* anon */ {
 
-bool fpga_initialize(nrfx_spim_t & spim_instance)
-{
-	// upload FPGA image
-	bool success = false;
+	static uint8_t gps_average = 0; // [+1]
+	uint16_t dac_out = 0x8000;
 
-	nrfx_init_spim(&spim_instance,
-			pin_spi_clk,
-			pin_spi_sdi,	// SDI is slave side, so this is MOSI
-			pin_spi_sdo,
-			NRFX_SPIM_PIN_NOT_USED,
-			false,
-			NRFX_SPIM_DEFAULT_CONFIG_IRQ_PRIORITY,
-			0xff,
-			NRF_SPIM_FREQ_1M,
-			NRF_SPIM_MODE_3,
-			NRF_SPIM_BIT_ORDER_MSB_FIRST);
 
-	// prepage FPGA
-	// take FPGA down, then put it into SPI slave mode
-	nrf_gpio_cfg_output(pin_fpga_nreset);
-	nrf_gpio_pin_clear(pin_fpga_nreset);
-	vTaskDelay(pdMS_TO_TICKS(1));
+	bool fpga_initialize(nrfx_spim_t & spim_instance)
+	{
+		// upload FPGA image
+		bool success = false;
 
-	nrf_gpio_cfg_output(pin_spi_ncs_fpga);
-	nrf_gpio_pin_clear(pin_spi_ncs_fpga);
-	nrf_gpio_cfg_input(pin_fpga_cdone, NRF_GPIO_PIN_NOPULL);
-	vTaskDelay(pdMS_TO_TICKS(1));
+		nrfx_init_spim(&spim_instance,
+				pin_spi_clk,
+				pin_spi_sdi,	// SDI is slave side, so this is MOSI
+				pin_spi_sdo,
+				NRFX_SPIM_PIN_NOT_USED,
+				false,
+				NRFX_SPIM_DEFAULT_CONFIG_IRQ_PRIORITY,
+				0xff,
+				NRF_SPIM_FREQ_1M,
+				NRF_SPIM_MODE_3,
+				NRF_SPIM_BIT_ORDER_MSB_FIRST);
 
-	nrf_gpio_pin_set(pin_fpga_nreset);
-	vTaskDelay(pdMS_TO_TICKS(1));
+		// prepage FPGA
+		// take FPGA down, then put it into SPI slave mode
+		nrf_gpio_cfg_output(pin_fpga_nreset);
+		nrf_gpio_pin_clear(pin_fpga_nreset);
+		vTaskDelay(pdMS_TO_TICKS(1));
 
-	success = nrfx_spim_xfer_implementation(
-			(void*)&spim_instance,
-			FPGA_BITSTREAM, FPGA_BITSTREAM_SIZE,
-			NULL, 0);
-	if(!success)
-		goto fail;
+		nrf_gpio_cfg_output(pin_spi_ncs_fpga);
+		nrf_gpio_pin_clear(pin_spi_ncs_fpga);
+		nrf_gpio_cfg_input(pin_fpga_cdone, NRF_GPIO_PIN_NOPULL);
+		vTaskDelay(pdMS_TO_TICKS(1));
 
-	uint8_t tailbuf[8];
-	bzero(tailbuf, sizeof(tailbuf));
-	success = nrfx_spim_xfer_implementation(
-			(void*)&spim_instance,
-			tailbuf, sizeof(tailbuf),
-			NULL, 0);
+		nrf_gpio_pin_set(pin_fpga_nreset);
+		vTaskDelay(pdMS_TO_TICKS(1));
 
-	if(!success)
-		goto fail;
+		success = nrfx_spim_xfer_implementation(
+				(void*)&spim_instance,
+				FPGA_BITSTREAM, FPGA_BITSTREAM_SIZE,
+				NULL, 0);
+		if(!success)
+			goto fail;
 
-	vTaskDelay(pdMS_TO_TICKS(1));
+		uint8_t tailbuf[8];
+		bzero(tailbuf, sizeof(tailbuf));
+		success = nrfx_spim_xfer_implementation(
+				(void*)&spim_instance,
+				tailbuf, sizeof(tailbuf),
+				NULL, 0);
 
-	success = (0 != nrf_gpio_pin_read(pin_fpga_cdone));
+		if(!success)
+			goto fail;
 
-	vTaskDelay(pdMS_TO_TICKS(1));
+		vTaskDelay(pdMS_TO_TICKS(1));
 
-fail:
-	nrf_gpio_pin_set(pin_spi_ncs_fpga);
-	vTaskDelay(pdMS_TO_TICKS(1));
+		success = (0 != nrf_gpio_pin_read(pin_fpga_cdone));
 
-	nrfx_spim_uninit(&spim_instance);
-	return success;
-}
+		vTaskDelay(pdMS_TO_TICKS(1));
 
-static uint8_t gps_average = 0; // [+2]
+	fail:
+		nrf_gpio_pin_set(pin_spi_ncs_fpga);
+		vTaskDelay(pdMS_TO_TICKS(1));
 
-uint16_t dac_out = 0x8000;
-
-struct FpgaRxMessage {
-	uint32_t counter;
-	uint8_t inputs;
-} __attribute__((packed));
-
-void fpga_transfer(nrfx_spim_t & spim_instance)
-{
-	// spim_instance is assumed to be initialized in mode 1.
-	struct spi_context_with_cs ctx{ (void*)&spim_instance, true, pin_spi_ncs_fpga };
-	uint8_t tx_buf[5]{ 0,0,0,0,gps_average };
-	struct FpgaRxMessage rx_buf;
-
-	if(!nrfx_spim_xfer_manual_cs_implementation((void*)&ctx, tx_buf, sizeof(tx_buf),
-						(uint8_t*)&rx_buf, sizeof(rx_buf)))
-		return;
-
-	rx_buf.counter = __ntohl(rx_buf.counter);
-	if(rx_buf.counter != 0) {
-		printf("counter %lu\r\n", rx_buf.counter);
-
-		if(rx_buf.counter < 70e6) {
-			if(dac_out <= 0xffff-0x100)
-				dac_out += 0x100;
-			printf("DAC up: %u\r\n", dac_out);
-		} else if(rx_buf.counter > 70e6) {
-			if(dac_out >= 0+0x100)
-				dac_out -= 0x100;
-			printf("DAC down: %u\r\n", dac_out);
-		}
+		nrfx_spim_uninit(&spim_instance);
+		return success;
 	}
 
-	if(rx_buf.inputs & ((1<<3)))
-		gps_average--;
-	if(rx_buf.inputs & ((1<<2)))
-		gps_average++;
-	if(rx_buf.inputs)
-		printf("average over %d seconds\r\n", gps_average+1);
-}
+	struct FpgaRxMessage {
+		uint32_t counter;
+		uint8_t inputs;
+	} __attribute__((packed));
 
+	static int up = 0;
+	static int down = 0;
+
+	void fpga_transfer(nrfx_spim_t & spim_instance)
+	{
+		// spim_instance is assumed to be initialized in mode 1.
+		struct spi_context_with_cs ctx{ (void*)&spim_instance, true, pin_spi_ncs_fpga };
+		uint8_t tx_buf[5]{ 0,0,0,0,gps_average };
+		struct FpgaRxMessage rx_buf;
+
+		if(!nrfx_spim_xfer_manual_cs_implementation((void*)&ctx, tx_buf, sizeof(tx_buf),
+							(uint8_t*)&rx_buf, sizeof(rx_buf)))
+			return;
+
+		rx_buf.counter = __ntohl(rx_buf.counter);
+		if(rx_buf.counter != 0) {
+			printf("\fcounter %lu\r\n", rx_buf.counter);
+
+			int delta = 0x500 / (1+std::min(up, down));
+			if(delta < 5)
+				delta = 5;
+
+			printf("up %u down %u delta %u\r\n", up, down, delta);
+
+			if(rx_buf.counter < (gps_average+1)*70e6) {
+				if(dac_out <= 0xffff-delta) {
+					dac_out += delta;
+					if(up < 100)
+						up++;
+				}
+				printf("DAC up: %u\r\n", dac_out);
+			} else if(rx_buf.counter > (gps_average+1)*70e6) {
+				if(dac_out >= 0+delta) {
+					dac_out -= delta;
+					if(down < 100)
+						down++;
+				}
+				printf("DAC down: %u\r\n", dac_out);
+			}
+		}
+
+		if(rx_buf.inputs & ((1<<3)))
+			gps_average--;
+		if(rx_buf.inputs & ((1<<2)))
+			gps_average++;
+		if(rx_buf.inputs)
+			printf("average over %d seconds\r\n", gps_average+1);
+	}
+
+} // end of namespace anon
 
 TaskHandle_t spiManager = NULL;
 void spiManagerTask(void * ignored)
@@ -164,7 +182,6 @@ void spiManagerTask(void * ignored)
 #if 0
 		else
 			printf("ad5761 set to 0x%04x.\r\n", dac_out);
-		dac_out += 0x100;
 #endif
 		int32_t ret = ad5761r.ReadInputReg();
 		if(ret != dac_out)
