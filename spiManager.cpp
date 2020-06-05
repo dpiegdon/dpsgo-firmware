@@ -130,7 +130,9 @@ namespace /* anon */ {
 			gps_average--;
 		if(rx_buf.inputs & ((1<<2)))
 			gps_average++;
-		if(rx_buf.inputs)
+		if(rx_buf.inputs & ((1<<4)))
+			printf("temp alert\r\n");
+		if(rx_buf.inputs & ~(1<<4))
 			printf("average over %d seconds\r\n", gps_average+1);
 	}
 

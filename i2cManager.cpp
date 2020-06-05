@@ -3,6 +3,7 @@
 
 #include "embedded_drivers/ssd1306_i2c_display.h"
 #include "embedded_drivers/si5351_i2c_clockgen.h"
+#include "embedded_drivers/mcp9808.h"
 #include "embedded_drivers/font_tama_mini02.h"
 #include "embedded_drivers/nrfx/glue.h"
 
@@ -137,6 +138,20 @@ void i2cManagerTask(void * ignored)
 			nrfx_twim_rx_implementation
 			);
 
+	Mcp9808I2cSensor temp_ocxo(
+			&twim_instance,
+			nrfx_twim_tx_implementation,
+			nrfx_twim_rx_implementation,
+			0b000
+			);
+
+	Mcp9808I2cSensor temp_power(
+			&twim_instance,
+			nrfx_twim_tx_implementation,
+			nrfx_twim_rx_implementation,
+			0b001
+			);
+
 	console = xStreamBufferCreate(256, 1);
 
 	display.Puts("console ready.\r\n");
@@ -145,6 +160,7 @@ void i2cManagerTask(void * ignored)
 	if(!init_si5351(clockgen, display))
 		display.Puts("init_si5351() failed\r\n");
 
+	uint16_t i = 0;
 	while(1) {
 		char buf[64];
 		size_t len;
@@ -153,7 +169,15 @@ void i2cManagerTask(void * ignored)
 
 		uint8_t val;
 		clockgen.I2cRead(Si5351I2cClockgenerator::DeviceStatus, val);
-		//printf("0x%2x\r\n", val);
+
+		i++;
+		if(0 == (i&0x7ff)) {
+			float temp;
+			if(temp_ocxo.ReadTemperature(temp))
+				printf("OCXO: %2.2fC ", temp);
+			if(temp_power.ReadTemperature(temp))
+				printf("PWR: %2.2fC\r\n", temp);
+		}
 	};
 }
 

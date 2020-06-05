@@ -79,6 +79,7 @@ SOURCES_CXX := \
 	embedded_drivers/font_tama_mini02.cpp \
 	embedded_drivers/si5351_i2c_clockgen.cpp \
 	embedded_drivers/ad5761r_spi_dac.cpp \
+	embedded_drivers/mcp9808.cpp \
 	syscalls.cpp \
 	i2cManager.cpp \
 	logicManager.cpp \
