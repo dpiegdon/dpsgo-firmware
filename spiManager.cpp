@@ -109,14 +109,14 @@ namespace /* anon */ {
 
 			printf("up %u down %u delta %u\r\n", up, down, delta);
 
-			if(rx_buf.counter < (gps_average+1)*70e6) {
+			if(rx_buf.counter < (gps_average+1) * internal_reference_frequency) {
 				if(dac_out <= 0xffff-delta) {
 					dac_out += delta;
 					if(up < 100)
 						up++;
 				}
 				printf("DAC up: %u\r\n", dac_out);
-			} else if(rx_buf.counter > (gps_average+1)*70e6) {
+			} else if(rx_buf.counter > (gps_average+1) * internal_reference_frequency) {
 				if(dac_out >= 0+delta) {
 					dac_out -= delta;
 					if(down < 100)

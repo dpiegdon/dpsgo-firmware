@@ -45,45 +45,50 @@ namespace { //anonymous
 			return false;
 		display.Puts("Si5351 pll source ok\r\n");
 
-		/*
-		if(!clockgen.PllSetMultisynth(Si5351I2cClockgenerator::PLL_A,
-					60, 0, 1))
-			return false;
-		display.Puts("Si5351 PLL-A @600MHz\r\n");
-		// FIXME set integer mode for PLL_A
-		*/
+
 
 		if(!clockgen.PllSetMultisynth(Si5351I2cClockgenerator::PLL_B,
-					70, 0, 1))
+					internal_reference_frequency_mhz, 0, 1))
 			return false;
-		display.Puts("Si5351 PLL-B @700MHz\r\n");
-		// FIXME set integer mode for PLL_B
+		display.Puts("Si5351 PLL-B ok\r\n");
 
-		// setup CLK0 to be 700/10 = 70MHz
+		// set integer mode for PLL_B. is controlled via CLK7.FBB_INT.
+		if(!clockgen.ClockSetControl(Si5351I2cClockgenerator::CLOCK_7,
+					false, true, Si5351I2cClockgenerator::PLL_B,
+					false, Si5351I2cClockgenerator::CLKSRC_MULTISYNTH_N, 0b00))
+			return false;
+		display.Puts("Si5351 PLL-B integer mode\r\n");
+
+
+
+
+		// setup CLK0 to be interal_reference_frequency
 		if(!clockgen.ClockSetMultisynth(Si5351I2cClockgenerator::CLOCK_0,
 					10, 0, 1, 1, 0))
 			return false;
 		display.Puts("Si5351 clk0 MS set\r\n");
-		// FIXME set MultiSynth0 to integer mode?
 
 		if(!clockgen.ClockSetControl(Si5351I2cClockgenerator::CLOCK_0,
-					true, false, Si5351I2cClockgenerator::PLL_B,
+					true, true, Si5351I2cClockgenerator::PLL_B,
 					false, Si5351I2cClockgenerator::CLKSRC_MULTISYNTH_N, 0b11))
 			return false;
 		display.Puts("Si5351 clk0 ctrl ok\r\n");
 
-		// setup CLK1 to be 700/10 = 70MHz
+
+
+		// setup CLK1 to be 10MHz
 		if(!clockgen.ClockSetMultisynth(Si5351I2cClockgenerator::CLOCK_1,
-					10, 0, 1, 1, 0))
+					internal_reference_frequency_mhz, 0, 1, 1, 0))
 			return false;
 		display.Puts("Si5351 clk1 MS set\r\n");
 
-		// FIXME set MultiSynth0 to integer mode?
 		if(!clockgen.ClockSetControl(Si5351I2cClockgenerator::CLOCK_1,
-					true, false, Si5351I2cClockgenerator::PLL_B,
+					true, true, Si5351I2cClockgenerator::PLL_B,
 					false, Si5351I2cClockgenerator::CLKSRC_MULTISYNTH_N, 0b11))
 			return false;
 		display.Puts("Si5351 clk1 ctrl ok\r\n");
+
+
 
 		if(!clockgen.OebPinEnable(0xff))
 			return false;
