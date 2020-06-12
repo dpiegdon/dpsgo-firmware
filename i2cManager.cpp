@@ -9,10 +9,73 @@
 
 #include <nrfx_twim.h>
 #include <cstring>
+#include <event_groups.h>
 
 using namespace embedded_drivers;
 
+static EventGroupHandle_t i2cEvents;
+#define I2C_EVENT_DONE      (1 << 0)
+#define I2C_EVENT_ADDR_NACK (1 << 1)
+#define I2C_EVENT_DATA_NACK (1 << 2)
+#define I2C_EVENT_ERROR     (1 << 3)
+#define I2C_EVENTS          ( I2C_EVENT_DONE | I2C_EVENT_ADDR_NACK | I2C_EVENT_DATA_NACK | I2C_EVENT_ERROR )
+
 namespace { //anonymous
+	void i2cEventHandler(nrfx_twim_evt_t const * event, void * context)
+	{
+		(void)context;
+		EventBits_t events = 0;
+
+		switch(event->type) {
+			case NRFX_TWIM_EVT_DONE:
+				events |= I2C_EVENT_DONE;
+				break;
+			case NRFX_TWIM_EVT_ADDRESS_NACK:
+				events |= I2C_EVENT_ADDR_NACK;
+				break;
+			case NRFX_TWIM_EVT_DATA_NACK:
+				events |= I2C_EVENT_DATA_NACK;
+				break;
+			case NRFX_TWIM_EVT_OVERRUN:
+			case NRFX_TWIM_EVT_BUS_ERROR:
+				events |= I2C_EVENT_ERROR;
+				break;
+		}
+
+		BaseType_t xTrue = pdTRUE;
+		xEventGroupSetBitsFromISR(i2cEvents, events, &xTrue);
+	}
+
+	bool blocking_twim_tx_implementation(void * context,
+			uint8_t address,
+			uint8_t const * buffer,
+			size_t len)
+	{
+		nrfx_twim_t * twim_instance = (nrfx_twim_t*)context;
+		if(NRFX_SUCCESS != nrfx_twim_tx(twim_instance, address, buffer, len, false))
+			return false;
+
+		EventBits_t events;
+		while(0 == (events = xEventGroupWaitBits(i2cEvents, I2C_EVENTS, true, false, pdMS_TO_TICKS(1000))))
+			/* wait */ ;
+		return events == I2C_EVENT_DONE;
+	}
+
+	bool blocking_twim_rx_implementation(void * context,
+			uint8_t address,
+			uint8_t * buffer,
+			size_t len)
+	{
+		nrfx_twim_t * twim_instance = (nrfx_twim_t*)context;
+		if(NRFX_SUCCESS != nrfx_twim_rx(twim_instance, address, buffer, len))
+			return false;
+
+		EventBits_t events;
+		while(0 == (events = xEventGroupWaitBits(i2cEvents, I2C_EVENTS, true, false, pdMS_TO_TICKS(1000))))
+			/* wait */ ;
+		return events == I2C_EVENT_DONE;
+	}
+
 
 	void msleep_implementation(void * ctx, unsigned msecs)
 	{
@@ -114,6 +177,8 @@ void i2cManagerTask(void * ignored)
 {
 	(void)ignored;
 
+	i2cEvents = xEventGroupCreate();
+
 	nrfx_twim_t twim_instance;
 
 	twim_instance.p_twim       = NRF_TWIM0;
@@ -122,33 +187,34 @@ void i2cManagerTask(void * ignored)
 	nrfx_init_twim(&twim_instance, pin_i2c_scl, pin_i2c_sda,
 			(nrf_twim_frequency_t)104857600, // magic value for 400 KHz
 			NRFX_TWIM_DEFAULT_CONFIG_IRQ_PRIORITY,
-			NRFX_TWIM_DEFAULT_CONFIG_HOLD_BUS_UNINIT);
+			NRFX_TWIM_DEFAULT_CONFIG_HOLD_BUS_UNINIT,
+			i2cEventHandler, NULL);
 
 	Ssd1306I2cDisplay display(NULL, msleep_implementation,
 			&twim_instance,
-			nrfx_twim_tx_implementation,
-			nrfx_twim_rx_implementation,
+			blocking_twim_tx_implementation,
+			blocking_twim_rx_implementation,
 			font_tama_mini02::dataptr,
 			font_tama_mini02::width,
 			font_tama_mini02::height);
 
 	Si5351I2cClockgenerator clockgen(
 			&twim_instance,
-			nrfx_twim_tx_implementation,
-			nrfx_twim_rx_implementation
+			blocking_twim_tx_implementation,
+			blocking_twim_rx_implementation
 			);
 
 	Mcp9808I2cSensor temp_ocxo(
 			&twim_instance,
-			nrfx_twim_tx_implementation,
-			nrfx_twim_rx_implementation,
+			blocking_twim_tx_implementation,
+			blocking_twim_rx_implementation,
 			0b000
 			);
 
 	Mcp9808I2cSensor temp_power(
 			&twim_instance,
-			nrfx_twim_tx_implementation,
-			nrfx_twim_rx_implementation,
+			blocking_twim_tx_implementation,
+			blocking_twim_rx_implementation,
 			0b001
 			);
 

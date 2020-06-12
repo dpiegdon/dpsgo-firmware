@@ -45,7 +45,7 @@ namespace { /* anon */
 		xEventGroupSetBitsFromISR(uarteEvents, events, &xTrue);
 	}
 
-	void setupUart(nrfx_uarte_t & instance)
+	void setupUarte(nrfx_uarte_t & instance)
 	{
 		nrfx_uarte_config_t config{};
 
@@ -206,7 +206,7 @@ void uartManagerTask(void * ignored)
 
 	uarteEvents = xEventGroupCreate();
 
-	setupUart(uarteInstance);
+	setupUarte(uarteInstance);
 
 	// FIXME wait for GO signal here.
 
