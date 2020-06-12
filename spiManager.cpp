@@ -9,13 +9,76 @@
 #include <strings.h>
 #include <nrfx_spim.h>
 #include <machine/endian.h>
+#include <event_groups.h>
 
 using namespace embedded_drivers;
+
+static EventGroupHandle_t spimEvents;
+#define SPIM_EVENT_DONE (1 << 0)
+#define SPIM_EVENTS     ( SPIM_EVENT_DONE )
 
 namespace /* anon */ {
 
 	static uint8_t gps_average = 0; // [+1]
 	uint16_t dac_out = 0x8000;
+
+	void spimEventHandler(nrfx_spim_evt_t const * event, void * context)
+	{
+		(void)context;
+		EventBits_t events = 0;
+
+		switch(event->type) {
+			case NRFX_SPIM_EVENT_DONE:
+				events |= SPIM_EVENT_DONE;
+				break;
+		}
+
+		BaseType_t xTrue = pdTRUE;
+		xEventGroupSetBitsFromISR(spimEvents, events, &xTrue);
+	}
+
+	bool blocking_spim_xfer_implementation(void * spi_context,
+			uint8_t const * tx_buf,
+			size_t tx_size,
+			uint8_t * rx_buf,
+			size_t rx_size)
+	{
+		nrfx_spim_t * spim_instance = (nrfx_spim_t *)spi_context;
+
+		nrfx_spim_xfer_desc_t xfer;
+
+		xfer.p_tx_buffer = tx_buf;
+		xfer.tx_length = tx_size;
+		xfer.p_rx_buffer = rx_buf;
+		xfer.rx_length = rx_size;
+
+		if(NRFX_SUCCESS != nrfx_spim_xfer(spim_instance, &xfer, 0))
+			return false;
+
+		EventBits_t events;
+		while(0 == (events = xEventGroupWaitBits(spimEvents, SPIM_EVENTS, true, false, pdMS_TO_TICKS(1000))))
+			/* wait */ ;
+		return events == SPIM_EVENT_DONE;
+	}
+
+	bool blocking_spim_xfer_manual_cs_implementation(void * spi_context_with_cs,
+			uint8_t const * tx_buf,
+			size_t tx_size,
+			uint8_t * rx_buf,
+			size_t rx_size)
+	{
+		struct spi_context_with_cs * ctx = (struct spi_context_with_cs *)spi_context_with_cs;
+		if(ctx->cs_active_low)
+			nrf_gpio_pin_clear(ctx->cs_pin);
+		else
+			nrf_gpio_pin_set(ctx->cs_pin);
+		bool ret = blocking_spim_xfer_implementation(ctx->spim_instance, tx_buf, tx_size, rx_buf, rx_size);
+		if(ctx->cs_active_low)
+			nrf_gpio_pin_set(ctx->cs_pin);
+		else
+			nrf_gpio_pin_clear(ctx->cs_pin);
+		return ret;
+	}
 
 
 	bool fpga_initialize(nrfx_spim_t & spim_instance)
@@ -33,7 +96,8 @@ namespace /* anon */ {
 				0xff,
 				NRF_SPIM_FREQ_1M,
 				NRF_SPIM_MODE_3,
-				NRF_SPIM_BIT_ORDER_MSB_FIRST);
+				NRF_SPIM_BIT_ORDER_MSB_FIRST,
+				spimEventHandler, NULL);
 
 		// prepage FPGA
 		// take FPGA down, then put it into SPI slave mode
@@ -49,7 +113,7 @@ namespace /* anon */ {
 		nrf_gpio_pin_set(pin_fpga_nreset);
 		vTaskDelay(pdMS_TO_TICKS(1));
 
-		success = nrfx_spim_xfer_implementation(
+		success = blocking_spim_xfer_implementation(
 				(void*)&spim_instance,
 				FPGA_BITSTREAM, FPGA_BITSTREAM_SIZE,
 				NULL, 0);
@@ -58,7 +122,7 @@ namespace /* anon */ {
 
 		uint8_t tailbuf[8];
 		bzero(tailbuf, sizeof(tailbuf));
-		success = nrfx_spim_xfer_implementation(
+		success = blocking_spim_xfer_implementation(
 				(void*)&spim_instance,
 				tailbuf, sizeof(tailbuf),
 				NULL, 0);
@@ -95,7 +159,7 @@ namespace /* anon */ {
 		uint8_t tx_buf[5]{ 0,0,0,0,gps_average };
 		struct FpgaRxMessage rx_buf;
 
-		if(!nrfx_spim_xfer_manual_cs_implementation((void*)&ctx, tx_buf, sizeof(tx_buf),
+		if(!blocking_spim_xfer_manual_cs_implementation((void*)&ctx, tx_buf, sizeof(tx_buf),
 							(uint8_t*)&rx_buf, sizeof(rx_buf)))
 			return;
 
@@ -143,6 +207,8 @@ void spiManagerTask(void * ignored)
 {
 	(void)ignored;
 
+	spimEvents = xEventGroupCreate();
+
 	// init SPI bus for use with DAC and FPGA instance
 	nrfx_spim_t spim_instance;
 
@@ -163,7 +229,8 @@ void spiManagerTask(void * ignored)
 			0xff,
 			NRF_SPIM_FREQ_4M,
 			NRF_SPIM_MODE_2,
-			NRF_SPIM_BIT_ORDER_MSB_FIRST);
+			NRF_SPIM_BIT_ORDER_MSB_FIRST,
+			spimEventHandler, NULL);
 
 	// prepare DAC
 	nrf_gpio_cfg_output(pin_spi_ncs_dac);
@@ -172,7 +239,7 @@ void spiManagerTask(void * ignored)
 	ad5761rSpiCtx.spim_instance = (void*)&spim_instance;
 	ad5761rSpiCtx.cs_active_low = true;
 	ad5761rSpiCtx.cs_pin = pin_spi_ncs_dac;
-	Ad5761rSpiDac ad5761r((void*)&ad5761rSpiCtx, nrfx_spim_xfer_manual_cs_implementation);
+	Ad5761rSpiDac ad5761r((void*)&ad5761rSpiCtx, blocking_spim_xfer_manual_cs_implementation);
 
 	ad5761r.WriteControlRegister(0b00, false, false, true, true, 0b00, 0b001);
 
