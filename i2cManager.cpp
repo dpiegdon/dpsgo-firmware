@@ -230,7 +230,7 @@ void i2cManagerTask(void * ignored)
 	while(1) {
 		char buf[64];
 		size_t len;
-		len = xStreamBufferReceive(console, buf, sizeof(buf), pdMS_TO_TICKS(1));
+		len = xStreamBufferReceive(console, buf, sizeof(buf), pdMS_TO_TICKS(100));
 		display.Write(buf, len);
 
 		uint8_t val;
