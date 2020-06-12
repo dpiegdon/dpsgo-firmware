@@ -90,19 +90,19 @@ int main(void)
 
 	init_hardware();
 
-	ret = xTaskCreate(watchdogManagerTask, "watchdog", 128, NULL, 4, &watchdogManager);
+	ret = xTaskCreate(watchdogManagerTask, "watchdog", 128, NULL, 1, &watchdogManager);
 	assert(ret == pdPASS);
 
-	ret = xTaskCreate(logicManagerTask, "logicManager", 512, NULL, 3, &logicManager);
+	ret = xTaskCreate(logicManagerTask, "logicManager", 512, NULL, 4, &logicManager);
 	assert(ret == pdPASS);
 
-	ret = xTaskCreate(spiManagerTask, "spiManager", 512, NULL, 2, &spiManager);
+	ret = xTaskCreate(spiManagerTask, "spiManager", 512, NULL, 3, &spiManager);
 	assert(ret == pdPASS);
 
-	ret = xTaskCreate(uartManagerTask, "uartManager", 512, NULL, 2, &uartManager);
+	ret = xTaskCreate(uartManagerTask, "uartManager", 512, NULL, 3, &uartManager);
 	assert(ret == pdPASS);
 
-	ret = xTaskCreate(i2cManagerTask, "i2cManager", 512, NULL, 1, &i2cManager);
+	ret = xTaskCreate(i2cManagerTask, "i2cManager", 512, NULL, 2, &i2cManager);
 	assert(ret == pdPASS);
 
 
