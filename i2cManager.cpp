@@ -20,6 +20,10 @@ static EventGroupHandle_t i2cEvents;
 #define I2C_EVENT_ERROR     (1 << 3)
 #define I2C_EVENTS          ( I2C_EVENT_DONE | I2C_EVENT_ADDR_NACK | I2C_EVENT_DATA_NACK | I2C_EVENT_ERROR )
 
+// magic value for 400 KHz
+#define TWI_400KHZ 104857600
+#define TWI_SPEED (TWI_400KHZ)
+
 namespace { //anonymous
 	void i2cEventHandler(nrfx_twim_evt_t const * event, void * context)
 	{
@@ -185,7 +189,7 @@ void i2cManagerTask(void * ignored)
 	twim_instance.drv_inst_idx = NRFX_TWIM0_INST_IDX;
 
 	nrfx_init_twim(&twim_instance, pin_i2c_scl, pin_i2c_sda,
-			(nrf_twim_frequency_t)104857600, // magic value for 400 KHz
+			(nrf_twim_frequency_t)(TWI_SPEED),
 			NRFX_TWIM_DEFAULT_CONFIG_IRQ_PRIORITY,
 			NRFX_TWIM_DEFAULT_CONFIG_HOLD_BUS_UNINIT,
 			i2cEventHandler, NULL);
@@ -231,10 +235,8 @@ void i2cManagerTask(void * ignored)
 		char buf[64];
 		size_t len;
 		len = xStreamBufferReceive(console, buf, sizeof(buf), pdMS_TO_TICKS(100));
-		display.Write(buf, len);
-
-		uint8_t val;
-		clockgen.I2cRead(Si5351I2cClockgenerator::DeviceStatus, val);
+		if(len > 0)
+			display.Write(buf, len);
 
 		i++;
 		if(0 == (i&0x7ff)) {
