@@ -22,7 +22,8 @@ static EventGroupHandle_t i2cEvents;
 
 // magic value for 400 KHz
 #define TWI_400KHZ 104857600
-#define TWI_SPEED (TWI_400KHZ)
+// but all components work with 800 KHz equally well, so let's speed things up.
+#define TWI_SPEED (TWI_400KHZ * 2)
 
 namespace { //anonymous
 	void i2cEventHandler(nrfx_twim_evt_t const * event, void * context)
