@@ -91,7 +91,7 @@ namespace { //anonymous
 	{
 		display.Puts("Si5351 wait for SysInit\r\n");
 		while(!clockgen.SysInitCompleted()) {
-			//display.PutChar('.');
+			display.PutChar('.');
 			vTaskDelay(configTICK_RATE_HZ/10);
 		}
 		display.Puts("Si5351 ready\r\n");
@@ -239,7 +239,7 @@ void i2cManagerTask(void * ignored)
 			display.Write(buf, len);
 
 		i++;
-		if(0 == (i&0x7ff)) {
+		if(0 == (i&0x00ff)) {
 			float temp;
 			if(temp_ocxo.ReadTemperature(temp))
 				printf("OCXO: %2.2fC ", temp);
