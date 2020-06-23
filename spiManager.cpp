@@ -152,6 +152,7 @@ namespace /* anon */ {
 
 	static int up = 0;
 	static int down = 0;
+	static bool ignore_next = true;
 
 	void fpga_transfer(nrfx_spim_t & spim_instance)
 	{
@@ -168,29 +169,35 @@ namespace /* anon */ {
 		uint64_t upcount = (((uint64_t)rx_buf.upcount_high) << 32) + __ntohl(rx_buf.upcount);
 
 		if(upcount != 0) {
-			printf("counter %llu/%d\r\n", upcount, downcount);
+			printf("counter %llu/%d%s\r\n", upcount, downcount, ignore_next ? " [IGN]" : "");
 
 			int delta = 0x500 / (1+std::min(up, down));
 			if(delta < 1)
 				delta = 1;
 
-			if(upcount < downcount * internal_reference_frequency) {
-				if(dac_out <= 0xffff-delta) {
-					dac_out += delta;
-					if(up < 1024)
-						up++;
-				}
-				printf("DAC up: %u\r\n", dac_out);
-			} else if(upcount > downcount * internal_reference_frequency) {
-				if(dac_out >= 0+delta) {
-					dac_out -= delta;
-					if(down < 1024)
-						down++;
-				}
-				printf("DAC down: %u\r\n", dac_out);
+			if(ignore_next) {
+				ignore_next = false;
 			} else {
-				if(downcount < 300)
-					downcount += 1;
+				if(upcount < downcount * internal_reference_frequency) {
+					if(dac_out <= 0xffff-delta) {
+						dac_out += delta;
+						if(up < 1024)
+							up++;
+					}
+					printf("DAC up: %u\r\n", dac_out);
+				} else if(upcount > downcount * internal_reference_frequency) {
+					if(dac_out >= 0+delta) {
+						dac_out -= delta;
+						if(down < 1024)
+							down++;
+					}
+					printf("DAC down: %u\r\n", dac_out);
+				} else {
+					if(downcount < 300) {
+						downcount += 1;
+						ignore_next = true;
+					}
+				}
 			}
 		}
 	}
