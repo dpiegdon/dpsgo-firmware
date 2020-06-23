@@ -168,13 +168,11 @@ namespace /* anon */ {
 		uint64_t upcount = (((uint64_t)rx_buf.upcount_high) << 32) + __ntohl(rx_buf.upcount);
 
 		if(upcount != 0) {
-			printf("\fcounter %llu\r\n", upcount);
+			printf("counter %llu/%d\r\n", upcount, downcount);
 
 			int delta = 0x500 / (1+std::min(up, down));
 			if(delta < 1)
 				delta = 1;
-
-			printf("up %u down %u delta %u\r\n", up, down, delta);
 
 			if(upcount < downcount * internal_reference_frequency) {
 				if(dac_out <= 0xffff-delta) {
