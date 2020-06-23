@@ -19,7 +19,7 @@ static EventGroupHandle_t spimEvents;
 
 namespace /* anon */ {
 
-	static uint8_t gps_average = 0; // [+1]
+	static uint16_t downcount = 1;
 	uint16_t dac_out = 0x8000;
 
 	void spimEventHandler(nrfx_spim_evt_t const * event, void * context)
@@ -144,9 +144,10 @@ namespace /* anon */ {
 		return success;
 	}
 
-	struct FpgaRxMessage {
-		uint32_t counter;
-		uint8_t inputs;
+	struct FpgaSpiBuffer {
+		uint16_t downcount;
+		uint8_t upcount_high;
+		uint32_t upcount;
 	} __attribute__((packed));
 
 	static int up = 0;
@@ -156,48 +157,43 @@ namespace /* anon */ {
 	{
 		// spim_instance is assumed to be initialized in mode 1.
 		struct spi_context_with_cs ctx{ (void*)&spim_instance, true, pin_spi_ncs_fpga };
-		uint8_t tx_buf[5]{ 0,0,0,0,gps_average };
-		struct FpgaRxMessage rx_buf;
 
-		if(!blocking_spim_xfer_manual_cs_implementation((void*)&ctx, tx_buf, sizeof(tx_buf),
+		struct FpgaSpiBuffer tx_buf{.downcount=__htons(downcount), .upcount_high=0, .upcount=0};
+		struct FpgaSpiBuffer rx_buf{};
+
+		if(!blocking_spim_xfer_manual_cs_implementation((void*)&ctx, (uint8_t*)&tx_buf, sizeof(tx_buf),
 							(uint8_t*)&rx_buf, sizeof(rx_buf)))
 			return;
 
-		rx_buf.counter = __ntohl(rx_buf.counter);
-		if(rx_buf.counter != 0) {
-			printf("\fcounter %lu\r\n", rx_buf.counter);
+		uint64_t upcount = (((uint64_t)rx_buf.upcount_high) << 32) + __ntohl(rx_buf.upcount);
+
+		if(upcount != 0) {
+			printf("\fcounter %llu\r\n", upcount);
 
 			int delta = 0x500 / (1+std::min(up, down));
-			if(delta < 5)
-				delta = 5;
+			if(delta < 1)
+				delta = 1;
 
 			printf("up %u down %u delta %u\r\n", up, down, delta);
 
-			if(rx_buf.counter < (gps_average+1) * internal_reference_frequency) {
+			if(upcount < downcount * internal_reference_frequency) {
 				if(dac_out <= 0xffff-delta) {
 					dac_out += delta;
-					if(up < 100)
+					if(up < 1024)
 						up++;
 				}
 				printf("DAC up: %u\r\n", dac_out);
-			} else if(rx_buf.counter > (gps_average+1) * internal_reference_frequency) {
+			} else if(upcount > downcount * internal_reference_frequency) {
 				if(dac_out >= 0+delta) {
 					dac_out -= delta;
-					if(down < 100)
+					if(down < 1024)
 						down++;
 				}
 				printf("DAC down: %u\r\n", dac_out);
+			} else {
+				downcount += 1;
 			}
 		}
-
-		if(rx_buf.inputs & ((1<<3)))
-			gps_average--;
-		if(rx_buf.inputs & ((1<<2)))
-			gps_average++;
-		if(rx_buf.inputs & ((1<<4)))
-			printf("temp alert\r\n");
-		if(rx_buf.inputs & ~(1<<4))
-			printf("average over %d seconds\r\n", gps_average+1);
 	}
 
 } // end of namespace anon
@@ -244,7 +240,8 @@ void spiManagerTask(void * ignored)
 	ad5761r.WriteControlRegister(0b00, false, false, true, true, 0b00, 0b001);
 
 	while(1) {
-		vTaskDelay(1000);
+		for(int i = 0; i < 1+downcount; ++i)
+			vTaskDelay(1100);
 
 		if(!ad5761r.WriteInputRegAndUpdate(dac_out))
 			printf("ad5761 write failed.\r\n");

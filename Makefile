@@ -167,7 +167,7 @@ CXXC_EXTRA_FLAGS += -fdata-sections -ffunction-sections
 CXXC_EXTRA_FLAGS += -fstack-usage
 CXXC_EXTRA_FLAGS += -Wall -Wextra -Wshadow --pedantic
 C_LANG_FLAGS += -std=c11
-CXX_LANG_FLAGS += -std=c++17
+CXX_LANG_FLAGS += -std=c++2a
 
 ASFLAGS += $(MCU_FLAGS) $(DEBUG_OPTIMIZE_FLAGS) $(DEFINE_FLAGS)
 CFLAGS += $(MCU_FLAGS) $(DEBUG_OPTIMIZE_FLAGS) $(DEFINE_FLAGS) $(CXXC_INCLUDE_FLAGS) $(CXXC_EXTRA_FLAGS) $(C_LANG_FLAGS)

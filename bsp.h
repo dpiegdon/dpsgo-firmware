@@ -45,3 +45,4 @@ const nrfx_gpiote_pin_t pin_ocxo_vref = NRF_GPIO_PIN_MAP(0, 2);
 
 const uint32_t internal_reference_frequency_mhz = 90;
 const uint32_t internal_reference_frequency = internal_reference_frequency_mhz * 1e6;
+
