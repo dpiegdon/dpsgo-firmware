@@ -191,7 +191,8 @@ namespace /* anon */ {
 				}
 				printf("DAC down: %u\r\n", dac_out);
 			} else {
-				downcount += 1;
+				if(downcount < 300)
+					downcount += 1;
 			}
 		}
 	}
@@ -223,7 +224,7 @@ void spiManagerTask(void * ignored)
 			false,
 			NRFX_SPIM_DEFAULT_CONFIG_IRQ_PRIORITY,
 			0xff,
-			NRF_SPIM_FREQ_4M,
+			NRF_SPIM_FREQ_2M,
 			NRF_SPIM_MODE_2,
 			NRF_SPIM_BIT_ORDER_MSB_FIRST,
 			spimEventHandler, NULL);
