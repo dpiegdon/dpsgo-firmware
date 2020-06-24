@@ -35,8 +35,16 @@ void watchdogManagerTask(void * ignored)
 	while(1) {
 		nrfx_wdt_channel_feed(wdtChannel);
 		// FIXME block for event group and only continue if all threads passed.
+
+		// trigger in a nice heartbeat pattern
+		nrf_gpio_pin_toggle(pin_fault_led);
+		vTaskDelay(configTICK_RATE_HZ);
+		nrf_gpio_pin_toggle(pin_fault_led);
+		vTaskDelay(configTICK_RATE_HZ/7);
 		nrf_gpio_pin_toggle(pin_fault_led);
 		vTaskDelay(configTICK_RATE_HZ/4);
+		nrf_gpio_pin_toggle(pin_fault_led);
+		vTaskDelay(configTICK_RATE_HZ/7);
 	}
 }
 
