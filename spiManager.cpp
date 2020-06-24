@@ -193,7 +193,7 @@ namespace /* anon */ {
 					}
 					printf("DAC down: %u\r\n", dac_out);
 				} else {
-					if(downcount < 300) {
+					if(downcount < (60*60*3)) {
 						downcount += 1;
 						ignore_next = true;
 					}
