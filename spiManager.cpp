@@ -166,38 +166,44 @@ namespace /* anon */ {
 							(uint8_t*)&rx_buf, sizeof(rx_buf)))
 			return;
 
-		uint64_t upcount = (((uint64_t)rx_buf.upcount_high) << 32) + __ntohl(rx_buf.upcount);
+		if(ignore_next) {
+			ignore_next = false;
+		} else {
 
-		if(upcount != 0) {
-			printf("%s %llu/%d\r\n", ignore_next ? "IGN" : "CTR", upcount, downcount);
+			uint64_t upcount = (((uint64_t)rx_buf.upcount_high) << 32) + __ntohl(rx_buf.upcount);
 
-			int delta = 0x2000 / downcount / std::min(up, down);
-			if(delta < 1)
-				delta = 1;
+			if(upcount != 0) {
+				printf("%s %llu/%d\r\n", ignore_next ? "IGN" : "CTR", upcount, downcount);
 
-			if(ignore_next) {
-				ignore_next = false;
-			} else {
-				if(upcount < downcount * internal_reference_frequency) {
+				int delta = 0x2000 / downcount / std::min(up, down);
+				if(delta < 1)
+					delta = 1;
+
+				uint64_t expected_upcount = downcount*internal_reference_frequency;
+				if(upcount < expected_upcount) {
 					if(dac_out <= 0xffff-delta) {
 						dac_out += delta;
 						if(up < 100)
 							up++;
 					}
-					printf("DAC up %d => %u\r\n", delta, dac_out);
-				} else if(upcount > downcount * internal_reference_frequency) {
+					printf(" \\DAC up %d => %u\r\n", delta, dac_out);
+				} else if(upcount > expected_upcount) {
 					if(dac_out >= 0+delta) {
 						dac_out -= delta;
 						if(down < 100)
 							down++;
 					}
-					printf("DAC down %d => %u\r\n", delta, dac_out);
+					printf(" \\DAC down %d => %u\r\n", delta, dac_out);
 				} else {
 					if(downcount < (60*60*3)) {
 						downcount += 1;
 						ignore_next = true;
 					}
 				}
+
+				double precision = 1.0 + ::abs(expected_upcount - upcount);
+				precision /= upcount;
+				printf(" \\PCN %.1E\r\n", precision);
 			}
 		}
 	}
@@ -246,8 +252,9 @@ void spiManagerTask(void * ignored)
 	ad5761r.WriteControlRegister(0b00, false, false, true, true, 0b00, 0b001);
 
 	while(1) {
-		for(int i = 0; i < 1+downcount; ++i)
-			vTaskDelay(1100);
+		if(!ignore_next)
+			for(int i = 0; i < 1+downcount; ++i)
+				vTaskDelay(1100);
 
 		if(!ad5761r.WriteInputRegAndUpdate(dac_out))
 			printf("ad5761 write failed.\r\n");
@@ -260,7 +267,7 @@ void spiManagerTask(void * ignored)
 			printf("ad5761 readback bad result: expected 0x%04x, got 0x%04lx\r\n",
 					dac_out, ret);
 
-		vTaskDelay(1);
+		vTaskDelay(pdMS_TO_TICKS(100));
 
 		fpga_transfer(spim_instance);
 	};
