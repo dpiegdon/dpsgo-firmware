@@ -175,7 +175,12 @@ namespace /* anon */ {
 			if(upcount != 0) {
 				printf("%s %llu/%d\r\n", ignore_next ? "IGN" : "CTR", upcount, downcount);
 
-				int delta = 0x2000 / downcount / std::min(up, down);
+				int div = 2 << downcount;
+				if((div <= 0) || (div > 0x2000))
+					div = 0x2000;
+				else
+					div = std::max(div, std::min(up, down));
+				unsigned delta = 0x2000 / div;
 				if(delta < 1)
 					delta = 1;
 
