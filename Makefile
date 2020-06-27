@@ -155,6 +155,8 @@ CXXC_INCLUDE_FLAGS += -InRF-IEEE-802.15.4-radio-driver/src -InRF-IEEE-802.15.4-r
 CXXC_INCLUDE_FLAGS += -I.
 
 DEBUG_OPTIMIZE_FLAGS += -O0 -g -gdwarf-4
+# enable thread/scheduler tracing via SWO?
+#DEBUG_OPTIMIZE_FLAGS += -DTRACE_THREADS
 
 # if you are using LTO,
 #DEBUG_OPTIMIZE_FLAGS += -flto -fdevirtualize-at-ltrans

@@ -204,4 +204,17 @@ standard names - or at least those used in the unmodified vector table. */
      */
 #define configUSE_DISABLE_TICK_AUTO_CORRECTION_DEBUG     0
 
+
+/* tracing features
+ *
+ * e.g. this would trace all scheduling operations using the first char of the threadname,
+ * upper case when switching *to* and lower case when switching *from* a thread.
+ */
+// change idle thread name, as "i2cManager" already starts with an "i".
+#ifdef TRACE_THREADS
+#define configIDLE_TASK_NAME "_idle"
+#define traceTASK_SWITCHED_OUT() { ITM_SendChar(pxCurrentTCB->pcTaskName[0]); }
+#define traceTASK_SWITCHED_IN() { ITM_SendChar(pxCurrentTCB->pcTaskName[0] - ((ITM_SendChar(pxCurrentTCB->pcTaskName[0]) >= 'a' ? 0x20 : 0))); }
+#endif
+
 #endif /* FREERTOS_CONFIG_H */

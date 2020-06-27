@@ -10,7 +10,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-
+#include <embedded_drivers/nrfx/tracing.h>
 
 #include "dpsgo.h"
 
@@ -87,6 +87,8 @@ static void init_hardware(void)
 int main(void)
 {
 	BaseType_t ret;
+
+	enable_swo_etm_tracing(1, 0x10, 1, 1, 1<<0);
 
 	init_hardware();
 
