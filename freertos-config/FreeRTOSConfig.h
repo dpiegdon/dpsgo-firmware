@@ -212,9 +212,8 @@ standard names - or at least those used in the unmodified vector table. */
  */
 // change idle thread name, as "i2cManager" already starts with an "i".
 #ifdef TRACE_THREADS
-#define configIDLE_TASK_NAME "_idle"
-#define traceTASK_SWITCHED_OUT() { ITM_SendChar(pxCurrentTCB->pcTaskName[0]); }
-#define traceTASK_SWITCHED_IN() { ITM_SendChar(pxCurrentTCB->pcTaskName[0] - ((ITM_SendChar(pxCurrentTCB->pcTaskName[0]) >= 'a' ? 0x20 : 0))); }
-#endif
+# define traceTASK_SWITCHED_OUT() { ITM->PORT[1].u8 = pxCurrentTCB->pcTaskName[0]; }
+# define traceTASK_SWITCHED_IN() { ITM->PORT[0].u32 = * ((uint32_t*)pxCurrentTCB->pcTaskName); }
+#endif // TRACE_THREADS
 
 #endif /* FREERTOS_CONFIG_H */

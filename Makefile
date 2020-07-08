@@ -156,7 +156,7 @@ CXXC_INCLUDE_FLAGS += -I.
 
 DEBUG_OPTIMIZE_FLAGS += -O0 -g -gdwarf-4
 # enable thread/scheduler tracing via SWO?
-#DEBUG_OPTIMIZE_FLAGS += -DTRACE_THREADS
+DEBUG_OPTIMIZE_FLAGS += -DTRACE_THREADS -DTRACE_SWO
 
 # if you are using LTO,
 #DEBUG_OPTIMIZE_FLAGS += -flto -fdevirtualize-at-ltrans
