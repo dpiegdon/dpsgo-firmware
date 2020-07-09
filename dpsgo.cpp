@@ -91,8 +91,8 @@ int main(void)
 
 #ifdef TRACE_SWO
 	nrf_mux_swo();
-	// configure SWO pin to 4MBaud UART ITM trace.
-	arm_cm4_enable_swo_itm_tracing(true, 7, false, 0);
+	// configure SWO pin to 2MBaud UART ITM trace.
+	arm_cm4_enable_swo_itm_tracing(true, 15, false, 0, false, 0x00000003);
 #endif // TRACE_SWO
 
 	init_hardware();
