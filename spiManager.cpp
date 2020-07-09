@@ -228,6 +228,9 @@ void spiManagerTask(void * ignored)
 	spim_instance.p_reg = NRF_SPIM3;
 	spim_instance.drv_inst_idx = NRFX_SPIM3_INST_IDX;
 
+	nrf_gpio_cfg_output(pin_spi_ncs_dac);
+	nrf_gpio_pin_set(pin_spi_ncs_dac);
+
 	while(!fpga_initialize(spim_instance))
 		printf("failed to initialize FPGA\r\n");
 
@@ -246,8 +249,6 @@ void spiManagerTask(void * ignored)
 			spimEventHandler, NULL);
 
 	// prepare DAC
-	nrf_gpio_cfg_output(pin_spi_ncs_dac);
-	nrf_gpio_pin_set(pin_spi_ncs_dac);
 	struct spi_context_with_cs ad5761rSpiCtx;
 	ad5761rSpiCtx.spim_instance = (void*)&spim_instance;
 	ad5761rSpiCtx.cs_active_low = true;
